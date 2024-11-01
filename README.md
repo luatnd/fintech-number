@@ -14,8 +14,10 @@
 
 ## Getting started
 ```typescript
-const n = 0.0001213123 
-f(n, option)
+import {f, DynamicFormatOption} from 'fintech-number' 
+
+formated = f(0.0001213123, { showPlus: true }) // return +0.000121
+formated = f(1234.56789, { round: 'down' }) // return 1234.56
 ```
 
 Here the option:
