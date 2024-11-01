@@ -17,7 +17,7 @@
 import {f, DynamicFormatOption} from 'fintech-number' 
 
 formated = f(0.0001213123, { showPlus: true }) // return +0.000121
-formated = f(1234.56789, { round: 'down' }) // return 1234.56
+formated = f(1234.56789, { round: 'down' }) // return 1,234.56
 ```
 
 Here the option:
