@@ -1,6 +1,6 @@
 {
   "name": "fintech-number",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Human readable, auto decimal selection number format for finance app, +-sign supported",
   "main": "./lib/index.js",
   "files": [
