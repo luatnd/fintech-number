@@ -11,12 +11,17 @@
 - +- sign supported
 - With `tinySupport`: Auto fallback to smart decimal place if the specified decimal place provide a 0 value
 - Can limit max decimal to limit the digits on the UI, avoid UI overflow 
+- Can round up/down/auto or 10,100,... steps 
 
 ## Getting started
 ```typescript
 import {f, DynamicFormatOption} from 'fintech-number' 
 
+// smart auto get short number that enough info for human
+formated = f(1122.000100012) // return 1122
+// show sign 
 formated = f(0.0001213123, { showPlus: true }) // return +0.000121
+// custom round
 formated = f(1234.56789, { round: 'down' }) // return 1,234.56
 ```
 
