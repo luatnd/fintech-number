@@ -1,6 +1,12 @@
 export type DynamicFormatOption = {
-  decimal?: number; // default: undefined => auto choose decimal, force show decimal
+  // default: undefined => auto choose decimal, force show decimal
   // if decimal < 0: eg, -2 => round up to step 100 => 123456.789 => 123400
+  // if decimal = 2: eg, 0.003 will be rounded to 0.00 and showed as `0`
+  decimal?: number;
+
+  // contain at least some meaningful digits, eg: 0.00100123 has 6 meaningful digits `100123`.
+  // This has low priority than by `maxDecimal` option
+  minMeaningLength?: number;
 
   meaningful?: boolean | number; // [default true] hide non-meaningful 0 digits at first and last of number string
   round?:
@@ -23,13 +29,16 @@ export type DynamicFormatOption = {
 
 export class DynamicNumberFormat {
   // rounding with auto decimal always have minimum of 6 meaningful digits
-  static MEANINGFUL_LENGTH = 6;
+  static DEFAULT_MEANING_LENGTH = 6;
   // changed to opt.tinySupport
   // static MIN_TINY_SUPPORT = 1e-6; // if the number is smaller than this, it is considered "0", cannot apply tinySupport
   static EMPTY_NUMBER = '--';
   static DEBUG = false;
 
-  static safeFormat(n: number | undefined, opt: DynamicFormatOption = {}): string {
+  static safeFormat(
+    n: number | undefined,
+    opt: DynamicFormatOption = {}
+  ): string {
     try {
       return DynamicNumberFormat.format(n, opt);
     } catch (e) {
@@ -49,7 +58,8 @@ export class DynamicNumberFormat {
     // tryna format
     // eslint-disable-next-line prefer-const
     let { rounded, decimal } = this.dynamicRound(n, opt);
-    this.DEBUG && console.log('{dynamicNumberFormat} rounded, decimal: ', rounded, decimal);
+    this.DEBUG &&
+      console.log('{dynamicNumberFormat} rounded, decimal: ', rounded, decimal);
 
     // support negative decimal:
     // 12345678.89 and decimal -2 = 12345600
@@ -82,7 +92,7 @@ export class DynamicNumberFormat {
 
   static dynamicRound(
     n: number,
-    opt: DynamicFormatOption = {},
+    opt: DynamicFormatOption = {}
   ): {
     rounded: number;
     decimal: number;
@@ -101,7 +111,12 @@ export class DynamicNumberFormat {
           decimal += 2; // jump 2 step at once
           rounded = this.roundDecimal(n, { ...opt, decimal: decimal });
         }
-        this.DEBUG && console.log('{dynamicNumberFormat} rounded, decimal with tinySupport: ', rounded, decimal);
+        this.DEBUG &&
+          console.log(
+            '{dynamicNumberFormat} rounded, decimal with tinySupport: ',
+            rounded,
+            decimal
+          );
       }
 
       return {
@@ -110,11 +125,15 @@ export class DynamicNumberFormat {
       };
     }
 
-    const dynamicDecimal = this.getDecimal(n);
-    this.DEBUG && console.log('{dynamicNumberRound} dynamicDecimal 2: ', dynamicDecimal);
+    const dynamicDecimal = this.getAutoDecimal(n, opt);
+    this.DEBUG &&
+      console.log('{dynamicNumberRound} dynamicDecimal 2: ', dynamicDecimal);
 
     return {
-      rounded: this.roundDecimal(n, { ...opt, decimal: Math.min(dynamicDecimal, opt.maxDecimal ?? 9999) }),
+      rounded: this.roundDecimal(n, {
+        ...opt,
+        decimal: Math.min(dynamicDecimal, opt.maxDecimal ?? 9999),
+      }),
       decimal: dynamicDecimal,
     };
   }
@@ -136,20 +155,34 @@ export class DynamicNumberFormat {
   }
 
   // auto smart decimal
-  static getDecimal(n: number): number {
-    const MeaningfulLength = this.MEANINGFUL_LENGTH;
+  static getAutoDecimal(n: number, opt?: DynamicFormatOption): number {
+    const minMeaningLength =
+      opt?.minMeaningLength ?? this.DEFAULT_MEANING_LENGTH;
     let dynamicDecimal = 0;
     const positiveN = Math.abs(n);
     if (Math.abs(n) >= 1) {
       const intDigitCount = Math.floor(Math.log10(positiveN)) + 1;
-      dynamicDecimal = intDigitCount > MeaningfulLength ? 0 : MeaningfulLength - intDigitCount;
-      this.DEBUG && console.log('{dynamicNumberRound} intDigitCount, dynamicDecimal: ', intDigitCount, dynamicDecimal);
+      dynamicDecimal =
+        intDigitCount > minMeaningLength ? 0 : minMeaningLength - intDigitCount;
+      this.DEBUG &&
+        console.log(
+          '{dynamicNumberRound 1} intDigitCount, dynamicDecimal: ',
+          intDigitCount,
+          dynamicDecimal
+        );
     } else {
       // it's +-0.0000abcdefghi => zeroAfterDecimalPlace=-4
-      const zeroAfterDecimalPlace = positiveN === 0 ? 0 : Math.floor(Math.log10(positiveN)) + 1;
+      const zeroAfterDecimalPlace =
+        positiveN === 0 ? 0 : -Math.floor(Math.log10(positiveN)) - 1;
 
-      // +-0.0000abcdef
-      dynamicDecimal = zeroAfterDecimalPlace > MeaningfulLength ? 0 : MeaningfulLength - zeroAfterDecimalPlace;
+      // +-0.0000abcdef (6 meaningful digits)
+      dynamicDecimal = zeroAfterDecimalPlace + minMeaningLength;
+      this.DEBUG &&
+        console.log(
+          '{dynamicNumberRound 0} zeroAfterDecimalPlace, dynamicDecimal: ',
+          zeroAfterDecimalPlace,
+          dynamicDecimal
+        );
     }
 
     this.DEBUG && console.log('{getDecimal} dynamicDecimal: ', dynamicDecimal);
@@ -158,7 +191,9 @@ export class DynamicNumberFormat {
   }
 
   static defaultValue(opt: DynamicFormatOption = {}): string {
-    return opt.defaultValue !== undefined ? opt.defaultValue : this.EMPTY_NUMBER;
+    return opt.defaultValue !== undefined
+      ? opt.defaultValue
+      : this.EMPTY_NUMBER;
   }
 }
 
